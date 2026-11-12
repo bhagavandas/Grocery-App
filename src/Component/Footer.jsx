@@ -13,7 +13,7 @@ const Footer = () => {
   let year = date.getFullYear();
   return (
     <div>
-      <>
+    
         <footer className="footer mt-8">
           <div className="overlay" />
           <div className="container">
@@ -323,7 +323,7 @@ const Footer = () => {
             </div>
           </div>
         </footer>
-      </>
+      
     </div>
   );
 };

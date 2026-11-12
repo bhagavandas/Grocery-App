@@ -6,8 +6,132 @@ import productimage3 from '../../images/product-img-3.jpg'
 import productimage4 from '../../images/product-img-4.jpg'
 import { MagnifyingGlass } from 'react-loader-spinner'
 import ScrollToTop from "../ScrollToTop";
+import { useCart } from "../../context/CartContext";
+
+
 
 const ShopCheckOut = () => {
+
+  const {
+  cartItems,
+  cartCount,
+  cartTotal,
+  clearCart,
+} = useCart();
+
+const [paymentLoading, setPaymentLoading] = useState(false);
+
+const handlePayment = async () => {
+  if (cartItems.length === 0) {
+    alert("Your cart is empty.");
+    return;
+  }
+
+  setPaymentLoading(true);
+
+  try {
+    // Load Razorpay Checkout
+    const loadRazorpay = () =>
+      new Promise((resolve) => {
+        if (window.Razorpay) {
+          resolve(true);
+          return;
+        }
+
+        const script = document.createElement("script");
+        script.src = "https://checkout.razorpay.com/v1/checkout.js";
+        script.onload = () => resolve(true);
+        script.onerror = () => resolve(false);
+        document.body.appendChild(script);
+      });
+
+    const loaded = await loadRazorpay();
+
+    if (!loaded) {
+      throw new Error("Unable to load Razorpay Checkout.");
+    }
+
+    // Include the ₹3 service fee
+    const payableAmount = cartTotal + 3;
+
+    // Create Razorpay order
+    const orderResponse = await fetch(
+      "http://localhost:5000/api/payment/create-order",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: payableAmount }),
+      }
+    );
+
+    const orderData = await orderResponse.json();
+
+    if (!orderResponse.ok || !orderData.success) {
+      throw new Error(orderData.message || "Unable to create order.");
+    }
+
+    const options = {
+      key: orderData.key,
+      amount: orderData.order.amount,
+      currency: orderData.order.currency,
+      name: "Grocery App",
+      description: "Grocery Order Payment",
+      order_id: orderData.order.id,
+
+      handler: async function (response) {
+        try {
+          const verifyResponse = await fetch(
+            "http://localhost:5000/api/payment/verify",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(response),
+            }
+          );
+
+          const verifyData = await verifyResponse.json();
+
+          if (!verifyResponse.ok || !verifyData.success) {
+            throw new Error("Payment verification failed.");
+          }
+
+          alert("Payment successful! Payment ID: " + verifyData.paymentId);
+
+          clearCart();
+          window.location.href = "/Shop";
+        } catch (error) {
+          alert(error.message || "Payment verification failed.");
+        } finally {
+          setPaymentLoading(false);
+        }
+      },
+
+      modal: {
+        ondismiss: () => setPaymentLoading(false),
+      },
+
+      theme: {
+        color: "#0aad0a",
+      },
+    };
+
+    const razorpay = new window.Razorpay(options);
+
+    razorpay.on("payment.failed", function (response) {
+      alert(
+        response.error.description || "Payment failed. Please try again."
+      );
+      setPaymentLoading(false);
+    });
+
+    razorpay.open();
+  } catch (error) {
+    console.error("Payment error:", error);
+    alert(error.message || "Unable to process payment.");
+    setPaymentLoading(false);
+  }
+};
+
    // loading
    const [loaderStatus, setLoaderStatus] = useState(true);
    useEffect(() => {
@@ -1978,9 +2102,14 @@ const ShopCheckOut = () => {
                               >
                                 Prev
                               </Link>
-                              <Link to="#" className="btn btn-primary ms-2">
-                                Place Order
-                              </Link>
+                              <button
+  type="button"
+  className="btn btn-primary ms-2"
+  onClick={handlePayment}
+  disabled={paymentLoading || cartItems.length === 0}
+>
+  {paymentLoading ? "Processing..." : "Place Order"}
+</button>
                             </div>
                           </div>
                         </div>
@@ -2102,29 +2231,40 @@ const ShopCheckOut = () => {
                         </li>
                         {/* list group item */}
                         <li className="list-group-item px-4 py-3">
-                          <div className="d-flex align-items-center justify-content-between   mb-2">
-                            <div>Item Subtotal</div>
-                            <div className="fw-bold">$70.00</div>
-                          </div>
-                          <div className="d-flex align-items-center justify-content-between  ">
-                            <div>
-                              Service Fee{" "}
-                              <i
-                                className="feather-icon icon-info text-muted"
-                                data-bs-toggle="tooltip"
-                                title="Default tooltip"
-                              />
-                            </div>
-                            <div className="fw-bold">$3.00</div>
-                          </div>
+                        <div className="d-flex align-items-center justify-content-between mb-2">
+  <div>Item Subtotal</div>
+  <div className="fw-bold">₹{cartTotal.toFixed(2)}</div>
+</div>
+
+<div className="d-flex align-items-center justify-content-between">
+  <div>
+    Service Fee{" "}
+    <i
+      className="feather-icon icon-info text-muted"
+      data-bs-toggle="tooltip"
+      title="Default tooltip"
+    />
+  </div>
+  <div className="fw-bold">₹3.00</div>
+</div>
                         </li>
                         {/* list group item */}
                         <li className="list-group-item px-4 py-3">
-                          <div className="d-flex align-items-center justify-content-between fw-bold">
-                            <div>Subtotal</div>
-                            <div>$73.00</div>
-                          </div>
-                        </li>
+  <div className="d-flex align-items-center justify-content-between mb-2">
+    <div>Subtotal ({cartCount} items)</div>
+    <div className="fw-bold">₹{cartTotal.toFixed(2)}</div>
+  </div>
+
+  <div className="d-flex align-items-center justify-content-between mb-2">
+    <div>Service Fee</div>
+    <div className="fw-bold">₹3.00</div>
+  </div>
+
+  <div className="d-flex align-items-center justify-content-between fw-bold border-top pt-3">
+    <div>Total Payable</div>
+    <div>₹{(cartTotal + 3).toFixed(2)}</div>
+  </div>
+</li>
                       </ul>
                     </div>
                   </div>

@@ -7,9 +7,17 @@ import productimage3 from '../images/product-img-3.jpg'
 import productimage4 from '../images/product-img-4.jpg'
 import productimage5 from '../images/product-img-5.jpg'
 import { Link } from "react-router-dom";
+import { useCart } from "../context/CartContext";
+
 
 const Header = () => {
-
+const {
+  cartItems,
+  cartCount,
+  cartTotal,
+  updateQuantity,
+  removeFromCart,
+} = useCart();
 
   const [isOpen, setIsOpen] = useState(false);
 
@@ -19,7 +27,7 @@ const Header = () => {
 
   return (
     <div>
-      <>
+      
         <div className="border-bottom pb-5">
           <div className="bg-light py-1">
             <div className="container">
@@ -106,10 +114,10 @@ const Header = () => {
                           <path d="M16 10a4 4 0 0 1-8 0" />
                         </svg>
                         <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-success">
-                          1
-                          <span className="visually-hidden">
-                            unread messages
-                          </span>
+                        {cartCount}
+                        <span className="visually-hidden">
+                          items in cart
+                        </span>
                         </span>
                       </Link>
                     </div>
@@ -119,8 +127,8 @@ const Header = () => {
             </div>
           </div>
         </div>
-      </>
-      <>
+      
+     
         <div className="container  displaydesign">
           <div className="row g-4">
             <div className="col-8 col-sm-4 col-lg-9 py-2 ">
@@ -215,7 +223,8 @@ const Header = () => {
                       <path d="M16 10a4 4 0 0 1-8 0" />
                     </svg>
                     <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-success">
-                      1<span className="visually-hidden">unread messages</span>
+                      {cartCount}
+<span className="visually-hidden">items in cart</span>
                     </span>
                   </Link>
                 </div>
@@ -223,7 +232,7 @@ const Header = () => {
             </div>
           </div>
         </div>
-      </>
+      
       <nav className="navbar navbar-expand-lg navbar-light sticky-top">
         <div className="container">
           <Link className="navbar-brand" to="/Grocery-react/">
@@ -674,7 +683,7 @@ const Header = () => {
           </div> */}
     </div>
       </nav >
-  <>
+ 
     <div>
       {/* Modal */}
       <div
@@ -751,7 +760,151 @@ const Header = () => {
           </div>
         </div>
       </div>
-      {/* Shop Cart */}
+      
+{/* Shop Cart */}
+<div
+  className="offcanvas offcanvas-end"
+  tabIndex={-1}
+  id="offcanvasRight"
+  aria-labelledby="offcanvasRightLabel"
+>
+  <div className="offcanvas-header border-bottom">
+    <div>
+      <h5 id="offcanvasRightLabel" className="mb-0 fs-4">
+        Shop Cart ({cartCount})
+      </h5>
+      <small>Location in 382480</small>
+    </div>
+
+    <button
+      type="button"
+      className="btn-close"
+      data-bs-dismiss="offcanvas"
+      aria-label="Close"
+    />
+  </div>
+
+  <div className="offcanvas-body">
+    {cartItems.length === 0 ? (
+      <div className="text-center py-5">
+        <h5>Your cart is empty</h5>
+        <p className="text-muted">
+          Add products to get started.
+        </p>
+        <Link
+          to="/Shop"
+          className="btn btn-primary"
+          data-bs-dismiss="offcanvas"
+        >
+          Continue Shopping
+        </Link>
+      </div>
+    ) : (
+      <>
+        <div className="alert alert-success">
+          You have {cartCount} item(s) in your cart.
+        </div>
+
+        <ul className="list-group list-group-flush">
+          {cartItems.map((item) => (
+            <li key={item.id} className="list-group-item py-3 px-0">
+              <div className="row align-items-center">
+                <div className="col-2">
+                  <img
+                    src={item.image || item.imageUrl}
+                    alt={item.name || item.title}
+                    className="img-fluid"
+                  />
+                </div>
+
+                <div className="col-5">
+                  <h6 className="mb-1">
+                    {item.name || item.title}
+                  </h6>
+                  <small className="text-muted">
+                    ₹{Number(item.price || 0).toFixed(2)}
+                  </small>
+
+                  <div className="mt-2">
+                    <button
+                      type="button"
+                      className="btn btn-link text-danger p-0 small"
+                      onClick={() => removeFromCart(item.id)}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+
+                <div className="col-3">
+                  <div className="input-group input-group-sm">
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary"
+                      onClick={() =>
+                        updateQuantity(item.id, item.quantity - 1)
+                      }
+                    >
+                      −
+                    </button>
+
+                    <span className="form-control text-center">
+                      {item.quantity}
+                    </span>
+
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary"
+                      onClick={() =>
+                        updateQuantity(item.id, item.quantity + 1)
+                      }
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+
+                <div className="col-2 text-end">
+                  <strong>
+                    ₹
+                    {(
+                      Number(item.price || 0) * item.quantity
+                    ).toFixed(2)}
+                  </strong>
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+
+        <div className="border-top mt-3 pt-3">
+  <div className="d-flex justify-content-between mb-2">
+    <strong>Subtotal</strong>
+    <strong>₹{cartTotal.toFixed(2)}</strong>
+  </div>
+
+  <div className="d-flex justify-content-between mb-2">
+    <span>Service Fee</span>
+    <strong>₹3.00</strong>
+  </div>
+
+  <div className="d-flex justify-content-between border-top pt-3 mb-3">
+    <strong>Total Payable</strong>
+    <strong>₹{(cartTotal + 3).toFixed(2)}</strong>
+  </div>
+
+  <Link
+  to="/ShopCheckOut"
+  className="btn btn-success btn-lg w-100"
+>
+  Go to Checkout — ₹{(cartTotal + 3).toFixed(2)}
+</Link>
+</div>
+      </>
+    )}
+  </div>
+</div>
+
       <div
         className="offcanvas offcanvas-end"
         tabIndex={-1}
@@ -1282,7 +1435,7 @@ const Header = () => {
         </div>
       </div>
     </div>
-  </>
+  
     </div >
   );
 };
